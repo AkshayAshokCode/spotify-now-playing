@@ -323,7 +323,13 @@ def escape_xml(text: str) -> str:
     Returns:
         Escaped text safe for XML
     """
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&apos;")
+    )
 
 
 def calculate_marquee(text: str, font_size: int, container_width: int = 330) -> dict:
