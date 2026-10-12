@@ -1,9 +1,13 @@
 {% extends "base.html.j2" %}
 
 {% block container_styles %}
-/* Dark theme - uses customizable background and border */
-background-color: var(--background-color);
+/* Dark theme - background is drawn by svg_background; keep HTML transparent */
+background-color: transparent;
 border: 1px solid var(--border-color);
+{% endblock %}
+
+{% block svg_background %}
+<rect width="{{ width }}" height="{{ height }}" rx="{{ border_radius }}" fill="#{{ background_color }}"/>
 {% endblock %}
 
 {% block theme_styles %}

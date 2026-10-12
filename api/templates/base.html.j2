@@ -26,6 +26,10 @@
         {{ bar_css | safe }}
     </style>
 
+    {# ── Background as native SVG, behind everything. WebKit paints foreignObject
+         above later siblings, so an opaque HTML background would hide the bars. ── #}
+    {% block svg_background %}{% endblock %}
+
     <foreignObject width="{{ width }}" height="{{ height }}" x="0" y="0">
         <div xmlns="http://www.w3.org/1999/xhtml" class="container {% if use_blur_background %}blur-bg{% endif %} {% if blur_is_dark %}blur-dark{% else %}blur-light{% endif %}">
             <style>
