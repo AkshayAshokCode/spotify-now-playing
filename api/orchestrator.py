@@ -165,6 +165,51 @@ def normalize_text_palette(
     return result
 
 
+def relative_luminance(r: int, g: int, b: int) -> float:
+    """WCAG relative luminance of an RGB colour (0-255 channels)."""
+
+    def channel(c: float) -> float:
+        c /= 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+def is_light_color(hex_color: str) -> bool:
+    """
+    Whether a hex colour (without #) is light enough to need dark text.
+
+    Uses WCAG relative luminance; anything above 0.5 counts as light.
+    """
+    try:
+        h = hex_color.strip().lstrip("#")
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    except (ValueError, IndexError):
+        return False
+    return relative_luminance(r, g, b) > 0.5
+
+
+def darken_for_light_background(palette: ColorPalette, max_luminance: float) -> ColorPalette:
+    """
+    Darken each colour until its luminance is at most ``max_luminance``.
+
+    Keeps hue and saturation. Against white, a luminance of 0.18 gives about
+    4.5:1 contrast (readable text) and 0.30 about 3:1 (graphics).
+    """
+    result: ColorPalette = []
+    for r, g, b in palette:
+        h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        rgb = (r, g, b)
+        while relative_luminance(*rgb) > max_luminance and l > 0:
+            l = max(0.0, l - 0.02)
+            rn, gn, bn = colorsys.hls_to_rgb(h, l, s)
+            rgb = (int(rn * 255), int(gn * 255), int(bn * 255))
+        result.append(rgb)
+    return result
+
+
 # ============================================================================
 # SVG Generation
 # ============================================================================
@@ -408,8 +453,14 @@ def make_svg(
 
     # Compress brightness so the gradient stays readable and bars aren't
     # too dark or washed out
-    song_palette = normalize_text_palette(song_palette)
-    bar_palette = normalize_text_palette(bar_palette, min_l=0.3, max_l=0.7)
+    # On a light solid background, use darker text so it stays readable.
+    on_light = background_type not in ("blur_dark", "blur_light") and is_light_color(background_color)
+    if on_light:
+        song_palette = darken_for_light_background(song_palette, max_luminance=0.18)
+        bar_palette = darken_for_light_background(bar_palette, max_luminance=0.30)
+    else:
+        song_palette = normalize_text_palette(song_palette)
+        bar_palette = normalize_text_palette(bar_palette, min_l=0.3, max_l=0.7)
 
     # Generate bar CSS with audio features and per-bar colors
     bar_css = generate_bar_css(bar_count, beat_duration_ms, energy, bar_palette)
@@ -504,6 +555,7 @@ def make_svg(
         "background_type": background_type,
         "use_blur_background": use_blur_background,
         "blur_is_dark": blur_is_dark,
+        "on_light": on_light,
         "blur_amount": cfg.blur_amount,
         "blur_overlay_opacity": (
             cfg.blur_dark_opacity if blur_is_dark else cfg.blur_light_opacity

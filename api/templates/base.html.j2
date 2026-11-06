@@ -31,7 +31,7 @@
     {% block svg_background %}{% endblock %}
 
     <foreignObject width="{{ width }}" height="{{ height }}" x="0" y="0">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="container {% if use_blur_background %}blur-bg{% endif %} {% if blur_is_dark %}blur-dark{% else %}blur-light{% endif %}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="container {% if use_blur_background %}blur-bg{% endif %} {% if blur_is_dark %}blur-dark{% else %}blur-light{% endif %} {% if on_light %}on-light{% endif %}">
             <style>
                 :root {
                     /* Colors (runtime — from request params + palette extraction) */
@@ -225,6 +225,17 @@
                     transition: opacity 0.2s ease;
                     filter: drop-shadow(0 0 1px rgba(0,0,0,0.8))
                             drop-shadow(0 0 2px rgba(0,0,0,0.5));
+                }
+
+                /* Light background: drop the dark outline, which looks muddy on white */
+                .container.on-light .song-text,
+                .container.on-light .artist-text,
+                .container.on-light .status {
+                    filter: none;
+                }
+
+                .container.on-light .status {
+                    opacity: 0.85;
                 }
 
                 .song:hover .song-text,
